@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>hooked · whitepaper</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#FFFFFF" />
+<link rel="icon" href="favicon.png" type="image/png" />
+<meta name="description" content="Hooked whitepaper — Uniswap v4 gamble token: swap rewards, deflation, USDG jackpot." />
+<style>
+  @font-face{font-family:"Sneak";src:url("assets/fonts/Sneak-Light.woff") format("woff");font-weight:300;font-display:swap;}
+  @font-face{font-family:"Sneak";src:url("assets/fonts/Sneak-Regular.woff2") format("woff2");font-weight:400;font-display:swap;}
+  @font-face{font-family:"Sneak";src:url("assets/fonts/Sneak-Medium.woff2") format("woff2");font-weight:500;font-display:swap;}
+
+  :root{
+    --paper:#FFFFFF; --ink:#0A0A0A; --muted:#8b8b8b; --soft:#2a2a2a;
+    --mint:#00D4AA; --coral:#FF4D2E; --gold:#FFC107; --deep:#0B3D3A;
+    --line:rgba(10,10,10,.12); --line-2:rgba(10,10,10,.06);
+    --cell:14px; --gutter:56px; --maxw:1176px;
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media(max-width:680px){ :root{--gutter:28px;} }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{scroll-behavior:smooth; overscroll-behavior:none;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink); overflow-x:hidden;
+    font-family:"Sneak","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight:400; line-height:1.55; -webkit-font-smoothing:antialiased;
+    font-feature-settings:"ss06" 1;
+  }
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase;}
+
+  #px-field{position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; pointer-events:none;}
+  main{position:relative; z-index:2;}
+
+  .hero{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column;
+    padding:0 0 calc(var(--cell)*3);
+  }
+  .hero-head{
+    position:relative; z-index:5;
+    background:var(--paper);
+    border-bottom:1px solid var(--line-2);
+  }
+  .hero-copy{
+    max-width:var(--maxw); width:100%; margin:0 auto;
+    padding:calc(var(--cell)*2.4) var(--gutter) calc(var(--cell)*2.8);
+  }
+  .wordmark{
+    display:block; margin:0; overflow:hidden;
+    font-size:clamp(48px,9.5vw,96px); font-weight:500;
+    line-height:.95; letter-spacing:-.05em;
+    text-transform:uppercase;
+  }
+  .wordmark > span{
+    display:block; transform:translateY(110%);
+    animation:rise .7s cubic-bezier(.22,1,.36,1) .06s both;
+  }
+  .wordmark > span:nth-child(2){animation-delay:.12s;}
+  .wordmark .line1{margin-bottom:6px;}
+  .wordmark .sel{
+    background:var(--mint); color:var(--ink);
+    box-decoration-break:clone; -webkit-box-decoration-break:clone;
+    padding:0 .08em; margin:0 -.08em;
+  }
+  .hero-lede{
+    margin:calc(var(--cell)*1.6) 0 0; max-width:none;
+    font-size:clamp(15px,1.15vw,18px); line-height:1.55; color:var(--soft);
+  }
+
+  .toc-stage{
+    position:relative; z-index:2;
+    flex:1; display:flex; align-items:center; justify-content:center;
+    width:100%; max-width:var(--maxw); margin:0 auto;
+    padding:calc(var(--cell)*3) var(--gutter) calc(var(--cell)*2);
+  }
+  .toc{
+    width:100%;
+    background:rgba(255,255,255,.92);
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+    border:1px solid var(--line);
+    display:grid; grid-template-columns:1fr; gap:0;
+    animation:fadeUp .55s cubic-bezier(.22,1,.36,1) .32s both;
+  }
+  @media(min-width:720px){ .toc{grid-template-columns:1fr 1fr;} }
+  .toc .col{padding:16px 18px; border-top:1px solid var(--line-2);}
+  @media(min-width:720px){
+    .toc .col{border-top:0; border-left:1px solid var(--line-2);}
+    .toc .col:first-child{border-left:0;}
+  }
+  .toc .lab{color:var(--muted); margin:0 0 10px;}
+  .toc a{
+    display:block; padding:6px 0; font-size:15px; font-weight:500; letter-spacing:-.02em;
+  }
+  .toc a:hover{background:var(--mint); padding-left:.12em; margin-left:-.12em; padding-right:.12em;}
+
+  @keyframes rise{to{transform:none;}}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+  .sheet{position:relative; z-index:2; background:transparent;}
+  .hero + .sheet{margin-top:clamp(calc(var(--cell)*3),8vh,calc(var(--cell)*7));}
+
+  /* single-column reading stack — title then body */
+  section.ed{
+    padding:calc(var(--cell)*4) var(--gutter);
+    max-width:var(--maxw); margin:0 auto;
+  }
+  .ed .stack{max-width:none; width:100%;}
+  .ed .kick{color:var(--muted); margin:0 0 8px;}
+  .ed h2{
+    font-size:clamp(26px,3.4vw,42px); line-height:1.08; letter-spacing:-.02em;
+    font-weight:400; margin:0 0 calc(var(--cell)*1.4);
+    width:fit-content; max-width:100%;
+  }
+  .ed p{
+    font-size:clamp(15px,1.12vw,17px); line-height:1.62;
+    margin:0 0 .9em; color:var(--soft); max-width:none;
+  }
+  .ed p:last-child{margin-bottom:0;}
+  .ed ul, .ed ol{
+    margin:0 0 .9em; padding-left:1.2em; color:var(--soft);
+    font-size:clamp(15px,1.12vw,17px); line-height:1.55; max-width:none;
+  }
+  .ed li{margin:0 0 .35em;}
+  .ed strong{font-weight:500; color:var(--ink);}
+  .ed .sel{
+    background:var(--mint); color:var(--ink); font-weight:500;
+    box-decoration-break:clone; -webkit-box-decoration-break:clone;
+    padding:0 .08em; margin:0 -.02em;
+  }
+  .ed .sel.gold{background:var(--gold);}
+  .ed code{
+    font-family:var(--mono); font-size:.86em; letter-spacing:0; text-transform:none;
+    background:rgba(10,10,10,.05); padding:.05em .3em;
+  }
+
+  .part{
+    max-width:var(--maxw); margin:0 auto;
+    padding:calc(var(--cell)*4) var(--gutter) calc(var(--cell)*1);
+    border-top:2px solid var(--ink);
+  }
+  .part .lab{color:var(--muted); margin:0 0 8px;}
+  .part h2{
+    margin:0; font-size:clamp(28px,3.8vw,48px); font-weight:400;
+    letter-spacing:-.03em; line-height:1.05;
+    width:fit-content; max-width:100%;
+  }
+  .part .sub{margin:10px 0 0; max-width:none; color:var(--muted); font-size:14px;}
+
+  .odds{
+    display:grid; grid-template-columns:1fr; gap:1px; background:var(--line);
+    border:1px solid var(--line);
+    width:100%; margin:calc(var(--cell)*2) 0 0;
+  }
+  @media(min-width:560px){
+    .odds{grid-template-columns:repeat(3,1fr);}
+    .odds.two{grid-template-columns:1fr 1fr;}
+  }
+  .odds .o{background:rgba(255,255,255,.94); padding:16px 14px;}
+  .odds .o .m{font-size:clamp(20px,2.2vw,26px); letter-spacing:-.03em; margin:0 0 4px; font-weight:500;}
+  .odds .o .l{color:var(--muted); margin:0 0 8px;}
+  .odds .o p{margin:0; font-size:13px; line-height:1.4; color:var(--soft); max-width:none;}
+  .odds .o.coral .m{color:var(--coral);}
+  .odds .o.gold .m{color:var(--gold);}
+  .odds .o.deep .m{color:var(--deep);}
+
+  table.ref{
+    width:100%; border-collapse:collapse;
+    margin:.2rem 0 1rem; font-size:14px;
+  }
+  table.ref th, table.ref td{
+    text-align:left; padding:8px 6px; border-bottom:1px solid var(--line-2);
+    vertical-align:top; color:var(--soft);
+  }
+  table.ref th{
+    font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--muted); font-weight:400;
+  }
+
+  .marq-host{position:relative; z-index:2; height:48px; margin:120px 0; pointer-events:none;}
+
+  .foot{
+    padding:calc(var(--cell)*5) var(--gutter) calc(var(--cell)*4);
+    display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;
+    color:var(--muted); max-width:var(--maxw); margin:0 auto; position:relative; z-index:2;
+  }
+  .foot a{color:var(--ink);}
+  .foot a:hover{text-decoration:underline; text-underline-offset:3px;}
+  .foot-social{display:inline-flex; align-items:center; gap:10px;}
+  .foot-social a{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border:1px solid var(--line); color:var(--ink);
+  }
+  .foot-social a:hover{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .foot-social svg{width:16px; height:16px; display:block;}
+
+  .reveal{opacity:0; transform:translateY(12px);}
+  .reveal.on{animation:fadeUp .65s cubic-bezier(.22,1,.36,1) both;}
+  @media(prefers-reduced-motion:reduce){
+    .wordmark > span, .toc, .reveal{animation:none; transform:none; opacity:1;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="px-field" aria-hidden="true"></canvas>
+
+<main id="top">
+  <section class="hero" id="hero">
+    <div class="hero-head" id="heroHead">
+      <div class="hero-copy">
+        <h1 class="wordmark" data-blobarrow>
+          <span class="line1"><span class="sel">Hooked</span></span>
+          <span>Whitepaper</span>
+        </h1>
+      </div>
+    </div>
+    <div class="toc-stage">
+      <nav class="toc" id="swap" aria-label="Contents">
+        <div class="col">
+          <p class="lab mono">Part I · Product</p>
+          <a href="#swap-flow">On a swap</a>
+          <a href="#rewards">Token rewards</a>
+          <a href="#deflation">Deflation</a>
+          <a href="#jackpot">Jackpot</a>
+          <a href="#loop">The loop</a>
+        </div>
+        <div class="col">
+          <p class="lab mono">Part II · Protocol</p>
+          <a href="#stack">Stack</a>
+          <a href="#fees">Fee splits</a>
+          <a href="#flow">Jackpot flow</a>
+          <a href="#random">Randomness</a>
+          <a href="#odds-ref">Odds &amp; payouts</a>
+          <a href="#roles">Roles</a>
+        </div>
+      </nav>
+    </div>
+  </section>
+
+  <div class="sheet">
+
+    <div class="part reveal" id="part-i">
+      <p class="lab mono">Part I</p>
+      <h2 data-blobarrow>How it works</h2>
+      <p class="sub">Product story in plain language.</p>
+      <p style="margin:14px 0 0;max-width:none;color:var(--soft);font-size:clamp(15px,1.12vw,17px);line-height:1.62;">
+        <strong>Hooked</strong> is a token you trade on Uniswap against USDG. When you buy, the protocol can roll a <strong>multiplier</strong> and send you more token than you just bought — paid from a rewards pool. On the same buy you can also hit a <strong>jackpot in USDG</strong>. Trade the token, sometimes leave with more of it, sometimes leave with stablecoin prize money.
+      </p>
+    </div>
+
+    <section class="ed reveal" id="swap-flow">
+      <div class="stack">
+        <p class="kick mono">01 · Buy or sell</p>
+        <h2 data-blobarrow>On a swap.</h2>
+        <p>Buys and sells both pay a protocol fee. That fee is what funds everything:</p>
+        <ul>
+          <li><strong>Token rewards</strong> — on buys, a Main share goes into the rewards pool that pays multipliers (floor <strong>0.9×</strong>, ceiling up to <strong>×4</strong>).</li>
+          <li><strong>Jackpot bank</strong> — a share of buys and sells is converted to USDG and sits in a separate prize pool. Only buys can win it.</li>
+          <li><strong>Ops</strong> — a smaller USDG share covers running the product.</li>
+        </ul>
+        <p>On a buy the sequence is: you spend USDG, receive Main at the pool price, the fee is taken and split, the multiplier game can top up your Main, and a jackpot ticket is opened for that buy. On a sell you pay the sell fee into jackpot and ops; there is no jackpot ticket and no rewards multiplier on the sell side.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="rewards">
+      <div class="stack">
+        <p class="kick mono">02 · Multiplier game</p>
+        <h2 data-blobarrow>Token rewards.</h2>
+        <p>On a swap the fill is priced at the pool, then a <strong>multiplier</strong> rolls on what you put in. The floor is <strong>0.9×</strong> — the trade went through, you just did not get lucky. Higher multiples are paid from a rewards pool of the token itself, filled by the buy-side token fee.</p>
+        <p>Those regular wins are tuned so that, ignoring the jackpot, expected return sits around <strong class="sel">95% RTP</strong>.</p>
+      </div>
+      <div class="odds" id="odds">
+        <div class="o coral">
+          <p class="m">0.9×</p>
+          <p class="l mono">floor</p>
+          <p>Swap cleared, no luck.</p>
+        </div>
+        <div class="o deep">
+          <p class="m">95%</p>
+          <p class="l mono">rtp</p>
+          <p>Regular rewards only.</p>
+        </div>
+        <div class="o gold">
+          <p class="m">up to ×4</p>
+          <p class="l mono">ceiling</p>
+          <p>Paid from the token pool.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="deflation">
+      <div class="stack">
+        <p class="kick mono">03 · Soft burn</p>
+        <h2 data-blobarrow>Deflation.</h2>
+        <p>RTP under 100% means more token enters the rewards pool than leaves as wins. In expectation a slice of flow <strong class="sel">stays on the contract</strong> and does not trade on the market. The protocol can also <strong>burn</strong> that surplus, permanently removing it from supply. Either way, higher volume tightens free float over time.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="jackpot">
+      <div class="stack">
+        <p class="kick mono">04 · Paid in usdg</p>
+        <h2 data-blobarrow>Jackpot.</h2>
+        <p>A separate bank in <strong class="sel gold">USDG</strong>. Buys and sells top it up. Only <strong>buys</strong> can win.</p>
+        <p>On a buy, fees split between token rewards and the USDG jackpot. The buy opens a ticket. Later that ticket is settled: miss or hit. Bigger buys land in higher <strong>size buckets</strong> with better odds. Bucket thresholds and base chances are protocol parameters; small buys still play, larger buys play with better odds.</p>
+        <p>A hit pays a fixed share of the <strong>current bank</strong> (default half) in USDG. The rest stays for the next winners. Because the prize is USDG, winners cash out without selling Hooked into the chart.</p>
+        <p>After every hit, odds are recalculated on-chain. The payout is compared to a <strong>target</strong> sized from market cap, with a floor for small caps and a ceiling for large ones. If the payout is above target, odds step up. If it is below, odds are cut. This way, the <strong class="sel gold">RTP can reach 100%+</strong> at any given moment. Hard min and max bounds keep chances inside a sane range.</p>
+      </div>
+      <div class="odds">
+        <div class="o gold">
+          <p class="m">~50%</p>
+          <p class="l mono">of bank</p>
+          <p>Default payout on a hit. Rest stays in the bank.</p>
+        </div>
+        <div class="o deep">
+          <p class="m">live odds</p>
+          <p class="l mono">after each hit</p>
+          <p>Scaled by payout vs target, then clamped.</p>
+        </div>
+        <div class="o coral">
+          <p class="m">100%+</p>
+          <p class="l mono">rtp</p>
+          <p>Can exceed 100% at any given moment.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="loop">
+      <div class="stack">
+        <p class="kick mono">05 · Volume and attention</p>
+        <h2 data-blobarrow>The loop.</h2>
+        <p>Volume fills the USDG bank. Hits and moving odds keep attention on the product. That attention brings more volume, which refills the jackpot and pushes more token into the rewards pool, tightening supply further.</p>
+        <p>Jackpot prizes are paid in USDG, so the loop does not mint Hooked to pay winners and does not force prize dumps into the book. It turns over volume while deflation compounds on the token side.</p>
+        <p>At a larger market cap, staking for holders may share protocol revenue. That sits outside the swap and jackpot core.</p>
+      </div>
+    </section>
+
+    <div class="part reveal" id="part-ii">
+      <p class="lab mono">Part II</p>
+      <h2 data-blobarrow>Protocol reference</h2>
+      <p class="sub">Fees, tickets, randomness, odds, payouts, and who can call what.</p>
+    </div>
+
+    <section class="ed reveal" id="stack">
+      <div class="stack">
+        <p class="kick mono">Architecture</p>
+        <h2 data-blobarrow>Stack.</h2>
+        <p>Hooked’s own on-chain surface is these four contracts around a Uniswap v4 Main/USDG pool. Uniswap’s <strong>PoolManager</strong>, position manager, and the routers users trade through stay external — Hooked does not replace the AMM.</p>
+        <ul>
+          <li><strong>MainToken</strong> — the listed ERC-20. Transfer rules are tied to the hook and pool (allowances for fee legs and LP). Listing requires Main to sort as token1 vs USDG.</li>
+          <li><strong>HookedV1</strong> — the Uniswap v4 hook on that pool. Owner-gated init, LP only via the configured position path, exact-input swaps. On after-swap it takes fees, on buys converts the jackpot/ops Main slice to USDG, pays rewards Main to the collector, USDG to jackpot and ops, and emits buy attribution (<code>buyId</code>).</li>
+          <li><strong>Fee collector</strong> — receives the buy-side Main rewards share and runs the regular multiplier game (0.9×–×4) against that pool. Surplus Main that is not paid out can sit on the contract or be burned.</li>
+          <li><strong>JackpotPool</strong> — receives USDG jackpot shares, opens a ticket per buy, settles draws when the keeper calls in, pays winners in USDG, and rewrites bucket odds after hits using the mcap target.</li>
+        </ul>
+        <p>Ops is a wallet, not a contract: it simply receives the ops USDG share from the hook. The <strong>keeper</strong> is off-chain software. A later staking module would be an extra contract; it is not part of the swap / jackpot core.</p>
+        <p>Swap routers sit between the user and the pool, so HookedV1 never sees a reliable end-buyer address at swap time. The keeper matches each on-chain <code>buyId</code> to the fill’s recipient and passes that address into <code>settle</code>. It cannot invent tickets; every ticket requires a prior fee from the hook.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="fees">
+      <div class="stack">
+        <p class="kick mono">Immutable in the hook</p>
+        <h2 data-blobarrow>Fee splits.</h2>
+        <table class="ref">
+          <thead>
+            <tr><th>Side</th><th>Total</th><th>Split</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Buy</td>
+              <td>10% of Main out</td>
+              <td>6.5% Main to rewards · 2% to USDG jackpot · 1.5% to USDG ops</td>
+            </tr>
+            <tr>
+              <td>Sell</td>
+              <td>3.5% of USDG out</td>
+              <td>2% to jackpot · 1.5% to ops</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>On buys, the jackpot and ops Main slices are converted to USDG inside the hook, then transferred. JackpotPool credits the bank. Buys also open a ticket. Sells only add USDG to the bank.</p>
+        <p>Buy size for odds is recovered from the jackpot fee share: at 2%, notional is approximately <code>fee × 50</code>.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="flow">
+      <div class="stack">
+        <p class="kick mono">Lifecycle</p>
+        <h2 data-blobarrow>Jackpot flow.</h2>
+        <ol>
+          <li><strong>Fee in.</strong> The hook transfers USDG and calls <code>receiveJackpotFee</code> with listing id, buy id, amounts, and timestamps.</li>
+          <li><strong>Ticket.</strong> On a buy, JackpotPool stores notional size and marks the ticket open. No random roll happens here.</li>
+          <li><strong>Settle.</strong> The keeper calls <code>settle(buyId, recipient)</code>. Randomness is drawn in that transaction.</li>
+          <li><strong>Miss.</strong> The ticket closes. The bank is unchanged.</li>
+          <li><strong>Hit.</strong> The contract pays <code>payoutBps</code> of the current bank (default 50%) in USDG to the recipient, then regulates odds against the current target.</li>
+        </ol>
+        <p>Anyone can seed the bank with USDG up front so the first prizes have a floor. Double-settling the same buy id reverts.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="random">
+      <div class="stack">
+        <p class="kick mono">Entropy</p>
+        <h2 data-blobarrow>Randomness.</h2>
+        <p>The outcome is deliberately unknown at purchase time. Opening a ticket only records size and metadata. The roll happens when the keeper settles.</p>
+        <p>Settle builds a roll from block entropy (<code>prevrandao</code>), block number, buy id, recipient, and notional, then takes that value modulo <code>1e18</code>. A hit occurs if the roll is strictly below the win probability for that ticket’s size bucket.</p>
+        <p>Binding the roll to the settle block means a mempool observer cannot know the result from the buy alone. The keeper is trusted to call settle with the correct recipient for each buy id; it cannot invent tickets without a prior fee.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="odds-ref">
+      <div class="stack">
+        <p class="kick mono">Buckets, target, payout</p>
+        <h2 data-blobarrow>Odds &amp; payouts.</h2>
+        <p><strong>Buckets.</strong> Odds are a table of size bands. Each band has a minimum notional and a win probability in WAD. A ticket uses the highest band whose minimum it meets. Below the lowest band, win probability is zero. Thresholds and starting probabilities are protocol parameters.</p>
+        <p><strong>Payout.</strong> On a hit the contract pays <code>poolBalance × payoutBps / 10000</code> in USDG (default 50%). The remainder stays in the bank for later hits.</p>
+        <p><strong>Target.</strong> After a hit, the protocol computes</p>
+        <p><code>target = min(ceiling, max(floor, mcap × mcapShare))</code></p>
+        <p>Market cap is Main total supply priced in USDG from the Uniswap v4 pool spot (Main as token1, USDG as token0). Floor covers low-cap launches; ceiling caps the target on large caps.</p>
+        <p><strong>Regulator.</strong> Every band probability is rewritten after a hit:</p>
+        <p><code>new_p = clamp(old_p × (payout / target), p_min, p_max)</code></p>
+        <p>Payout above target raises odds. Payout below target lowers them. <code>p_min</code> / <code>p_max</code> stop the table from collapsing or exploding. Odds are therefore live state, calculated on-chain after each win, even though the surface is a bucket table.</p>
+        <p><strong>Regular rewards</strong> (separate from the jackpot) draw multipliers from the Main rewards pool with a 0.9× floor and a high ceiling (up to ×4), targeting ~95% RTP on that layer alone.</p>
+      </div>
+    </section>
+
+    <section class="ed reveal" id="roles">
+      <div class="stack">
+        <p class="kick mono">Access</p>
+        <h2 data-blobarrow>Roles.</h2>
+        <table class="ref">
+          <thead>
+            <tr><th>Role</th><th>Responsibility</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Hook</td><td>Only address allowed to push jackpot fees into the pool when configured.</td></tr>
+            <tr><td>Keeper</td><td>Settles open tickets with the matched recipient and settle-time entropy.</td></tr>
+            <tr><td>Owner</td><td>Binds the mcap pool, sets odds bounds and targets, replaces bands, rotates keeper and hook.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="marq-host" id="marqHost" aria-hidden="true"></div>
+
+  <footer class="foot">
+    <span class="mono">stay hooked</span>
+    <div class="foot-social">
+      <a href="https://x.com/" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+    </div>
+  </footer>
+</main>
+
+<script>
+(function(){
+  const reduced=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+  if(reduced){
+    document.querySelectorAll(".reveal").forEach(el=>el.classList.add("on"));
+    return;
+  }
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("on"); io.unobserve(e.target); } });
+  },{threshold:0.16, rootMargin:"0px 0px -8% 0px"});
+  document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+})();
+
+/* ===== PIXEL FIELD — same engine as the main site ===== */
+(function(){
+  const cv=document.getElementById("px-field");
+  const ctx=cv.getContext("2d",{alpha:false}); if(!ctx) return;
+  const hero=document.getElementById("hero");
+  const heroHead=document.getElementById("heroHead");
+  const swap=document.getElementById("swap");
+  const marq=document.getElementById("marqHost");
+  const TOUCH=!(window.matchMedia&&matchMedia("(hover:hover) and (pointer:fine)").matches);
+  const DPR=Math.min(devicePixelRatio||1,2);
+  const cell=9, BRUSH=10;
+  let W=0,H=0,cols=0,rows=0,heat=null,t=0,SEED=Math.random()*1000;
+  let mx=-1,my=-1,hov=false,waves=[],shake=0,pmx=-1,pmy=-1,lastMove=-9;
+  let cursorZone="";
+  let raf=0, lastTs=0;
+  let layoutDirty=true, invW=1, invH=1, colCo=null, hshA=null;
+
+  function want(){ return !document.hidden; }
+  function kick(){
+    if(raf||!want()) return;
+    lastTs=0;
+    raf=requestAnimationFrame(render);
+  }
+  function stop(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
+  function sync(){ if(want()) kick(); else stop(); }
+  document.addEventListener("visibilitychange", sync);
+
+  const COL_DEEP="#0B3D3A", COL_MINT="#00D4AA", COL_GOLD="#FFC107", COL_CORAL="#FF4D2E";
+  const BANDS=[[0.30,COL_DEEP],[0.48,COL_MINT],[0.66,COL_GOLD],[0.82,COL_CORAL]];
+  const DRAW_COLS=[COL_DEEP,COL_MINT,COL_GOLD,COL_CORAL];
+  const buckets=[[],[],[],[]];
+  const COIN=[[1,0],[2,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2],[1,3],[2,3]];
+
+  function size(){
+    W=innerWidth; H=innerHeight;
+    invW=1/Math.max(1,W); invH=1/Math.max(1,H);
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    cols=Math.ceil(W/cell)+1; rows=Math.ceil(H/cell)+1;
+    heat=new Float32Array(cols*rows);
+    colCo=new Float32Array(cols);
+    hshA=new Float32Array(cols);
+    for(let c=0;c<cols;c++){
+      colCo[c]=Math.max(0,(Math.sin(c*0.5+SEED)+Math.sin(c*0.21-SEED*1.3))*0.16+0.15);
+      hshA[c]=hsh((c/2)|0,0);
+    }
+    layoutDirty=true;
+  }
+  function hsh(c,r){ const n=Math.sin(c*127.1+r*311.7+SEED*0.13)*43758.5453; return n-Math.floor(n); }
+  let lastW=innerWidth; size();
+  addEventListener("resize",()=>{ if(innerWidth!==lastW){ lastW=innerWidth; size(); }});
+
+  function base(nx,ny,tt){
+    let s=SEED; nx+=Math.sin(ny*5+tt*0.5+s)*0.05; ny+=Math.cos(nx*5-tt*0.4)*0.05;
+    const v=Math.sin(nx*5.6+s*1.3+tt*0.3)*Math.cos(ny*4.7-s*0.7+tt*0.22)
+      +Math.sin((nx*1.4+ny*1.7)*4.1-s+tt*0.16)+Math.sin(ny*9+s*2.1+nx*3)*0.5+Math.sin(nx*13-s*1.7)*0.28;
+    return 0.5+0.5*(v/2.55);
+  }
+  function region(nx,ny,tt){
+    return 0.5+0.5*Math.sin(nx*2.1+tt*0.12+SEED*0.7)*Math.cos(ny*1.8-tt*0.09+SEED*0.3);
+  }
+  function dep(x,y,amt,sig){
+    const cc=x/cell,cr=y/cell,rad=Math.ceil(sig*1.6),inv=1/(2*sig*sig*0.18);
+    for(let dr=-rad;dr<=rad;dr++) for(let dc=-rad;dc<=rad;dc++){
+      const c=(cc+dc)|0,r=(cr+dr)|0; if(c<0||r<0||c>=cols||r>=rows) continue;
+      const dx=c+.5-cc,dy=r+.5-cr,w=Math.exp(-(dx*dx+dy*dy)*inv); if(w<.02) continue;
+      const id=r*cols+c; heat[id]=Math.min(1,heat[id]+amt*w);
+    }
+  }
+  function follow(x,y,sig){
+    if(pmx<0){pmx=x;pmy=y;}
+    const dx=x-pmx,dy=y-pmy,dl=Math.hypot(dx,dy),steps=Math.max(1,Math.min(48,Math.round(dl/(cell*0.8))));
+    for(let s=1;s<=steps;s++){ const f=s/steps; dep(pmx+dx*f,pmy+dy*f,0.16,sig); }
+    pmx=x; pmy=y;
+  }
+  function stampCoin(cx,cy){
+    const S=2, bc=Math.round(cx/cell), br=Math.round(cy/cell), o=2*S;
+    const tw=t*0.006;
+    for(const p of COIN){
+      for(let yy=0;yy<S;yy++) for(let xx=0;xx<S;xx++){
+        const C=bc+p[0]*S+xx-o, R=br+p[1]*S+yy-o;
+        if(C<0||R<0||C>=cols||R>=rows) continue;
+        const id=R*cols+C, w=0.72+0.18*Math.sin((C*0.6+R*0.6)-tw);
+        if(w>heat[id]) heat[id]=w;
+      }
+    }
+  }
+
+  const WHEEL_COLS=[COL_DEEP,COL_MINT,COL_GOLD,COL_CORAL,COL_MINT,COL_GOLD];
+  const WHEEL_CELL=9;
+  const wheelBuckets=[[],[],[],[],[],[]];
+  function drawIdleRoulette(cx,cy,ang){
+    const R=118, segs=18, CELL=WHEEL_CELL;
+    for(let i=0;i<6;i++) wheelBuckets[i].length=0;
+    for(let i=0;i<segs;i++){
+      const a0=ang+i/segs*Math.PI*2;
+      const a1=ang+(i+0.72)/segs*Math.PI*2;
+      const bi=i%WHEEL_COLS.length;
+      const bucket=wheelBuckets[bi];
+      for(let u=0;u<1;u+=0.04){
+        for(let rad=0.55;rad<=1;rad+=0.07){
+          const a=a0+(a1-a0)*u;
+          bucket.push(Math.round((cx+Math.cos(a)*R*rad)/CELL)*CELL, Math.round((cy+Math.sin(a)*R*rad*0.72)/CELL)*CELL, 0.35+rad*0.55);
+        }
+      }
+    }
+    for(let bi=0;bi<WHEEL_COLS.length;bi++){
+      const bucket=wheelBuckets[bi], col=WHEEL_COLS[bi];
+      for(let i=0;i<bucket.length;i+=3){
+        ctx.globalAlpha=bucket[i+2];
+        ctx.fillStyle=col;
+        ctx.fillRect(bucket[i], bucket[i+1], CELL-1, CELL-1);
+      }
+    }
+    const markerA=-ang*1.7;
+    const hx=cx+Math.cos(markerA)*R*0.28;
+    const hy=cy+Math.sin(markerA)*R*0.2;
+    ctx.globalAlpha=1;
+    ctx.fillStyle="#0A0A0A";
+    ctx.fillRect(Math.round(hx/CELL)*CELL-CELL, Math.round(hy/CELL)*CELL-CELL, CELL*2-1, CELL*2-1);
+    ctx.fillStyle=COL_GOLD;
+    ctx.fillRect(Math.round(hx/CELL)*CELL, Math.round(hy/CELL)*CELL, CELL-1, CELL-1);
+    for(let k=0;k<10;k++){
+      const a=ang*2.1+k*0.7+Math.sin(ang*3+k);
+      ctx.globalAlpha=0.4+0.4*Math.sin(ang*8+k);
+      ctx.fillStyle=WHEEL_COLS[k%WHEEL_COLS.length];
+      ctx.fillRect(Math.round((cx+Math.cos(a)*R*1.05)/CELL)*CELL, Math.round((cy+Math.sin(a)*R*0.78)/CELL)*CELL, CELL-1, CELL-1);
+    }
+    ctx.globalAlpha=1;
+  }
+  function pointArrow(x,y,ang,tt){
+    const L=BRUSH*8.5, ca=Math.cos(ang), sa=Math.sin(ang), tipx=x+ca*L, tipy=y+sa*L;
+    const pulse=(tt*0.9)%1, steps=Math.max(16,Math.round(L/(cell*0.5)));
+    for(let i=0;i<=steps;i++){ const f=i/steps, hi=Math.exp(-Math.pow((f-pulse)*3.0,2)); dep(x+ca*L*f,y+sa*L*f,0.5+0.46*hi,0.95); }
+    const hl=BRUSH*3.4;
+    for(let s=-1;s<=1;s+=2){
+      const ba=ang+Math.PI+s*0.62, bsteps=Math.max(8,Math.round(hl/(cell*0.5)));
+      for(let j=0;j<=bsteps;j++){ const g=j/bsteps; dep(tipx+Math.cos(ba)*hl*g, tipy+Math.sin(ba)*hl*g, 0.72, 0.95); }
+    }
+  }
+  function stampWave(wv, age){
+    const pw=wv.pow||1;
+    const R=age*Math.hypot(W,H)*1.7;
+    const sig=cell*5.5*pw;
+    const amp=Math.max(0,1-age/1.5)*1.2*pw;
+    if(amp<0.02||R<cell) return;
+    const steps=Math.max(20, Math.min(96, Math.ceil(2*Math.PI*R/(cell*1.1))));
+    const brush=Math.max(cell*0.7, sig*0.42);
+    for(let i=0;i<steps;i++){
+      const a=(i/steps)*Math.PI*2;
+      dep(wv.x+Math.cos(a)*R, wv.y+Math.sin(a)*R, amp*0.9, brush);
+    }
+  }
+
+  let coinOn=false, coinx=0, coiny=0, rang=0, lastScroll=-9;
+  function wanderRoulette(restx,resty){
+    if(!coinOn){ coinOn=true; coinx=restx; coiny=resty; rang=0; }
+    rang+=0.012;
+  }
+  function isPageStill(ns){ return ns-lastScroll>0.35; }
+
+  const headEls=[].slice.call(document.querySelectorAll("[data-blobarrow]"));
+  const L={cutY:0, heroBottom:0, swap:null, marq:null, heads:[]};
+
+  function markLayout(){ layoutDirty=true; }
+  function refreshLayout(){
+    if(!layoutDirty) return;
+    layoutDirty=false;
+    const hb=hero?hero.getBoundingClientRect():{bottom:H};
+    const hr=heroHead?heroHead.getBoundingClientRect():{bottom:0};
+    L.cutY=Math.max(0, hr.bottom);
+    L.heroBottom=hb.bottom;
+    L.swap=swap?swap.getBoundingClientRect():null;
+    L.marq=marq?marq.getBoundingClientRect():null;
+    L.heads.length=0;
+    for(const el of headEls){
+      const r=el.getBoundingClientRect();
+      if(r.width<2) continue;
+      L.heads.push({l:r.left, r:r.right, t:r.top, b:r.bottom, cx:r.left+r.width*.5, cy:r.top+r.height*.5});
+    }
+  }
+
+  function zoneOf(el){
+    if(!el||!el.closest) return "";
+    if(el.closest("#odds, #swap, .toc, #roulette, .split, .loop")) return "coin";
+    return "";
+  }
+  function nearHeadline(x,y){
+    let best=null, bd=1e9, M=150;
+    for(const h of L.heads){
+      if(h.b<-40||h.t>H+40) continue;
+      if(x<h.l-M||x>h.r+M||y<h.t-M||y>h.b+M) continue;
+      const d=Math.hypot(x-h.cx,y-h.cy);
+      if(d<bd){ bd=d; best=h; }
+    }
+    return best;
+  }
+
+  addEventListener("pointermove", e=>{
+    if(TOUCH) return;
+    lastMove=performance.now()/1000; coinOn=false;
+    mx=e.clientX; my=e.clientY; hov=true;
+    cursorZone=zoneOf(e.target);
+  });
+  addEventListener("scroll", ()=>{
+    lastScroll=performance.now()/1000;
+    lastMove=lastScroll;
+    coinOn=false;
+    markLayout();
+  },{passive:true});
+  addEventListener("resize", markLayout);
+  addEventListener("dblclick", e=>{
+    if(TOUCH) return;
+    if(e.target.closest&&e.target.closest("a,button,input,.toc")) return;
+    waves.push({x:e.clientX,y:e.clientY,t0:performance.now()/1000,pow:2.4});
+    dep(e.clientX,e.clientY,1,BRUSH*18); shake=2.0;
+  });
+
+  const TXT=" you might win · stay hooked · loot on every swap · ";
+  const txtC=document.createElement("canvas"), txc=txtC.getContext("2d");
+  let txtW=0, TXH=18, txtCols=null, txtScroll=0;
+  function buildTxt(){
+    txc.font='16px "Sneak",monospace';
+    txtW=Math.max(8,Math.ceil(txc.measureText(TXT).width));
+    txtC.width=txtW; txtC.height=TXH;
+    txc.font='16px "Sneak",monospace'; txc.textBaseline="middle"; txc.fillStyle="#000";
+    txc.clearRect(0,0,txtW,TXH); txc.fillText(TXT,0,TXH/2);
+    const data=txc.getImageData(0,0,txtW,TXH).data;
+    txtCols=new Array(txtW);
+    for(let mc=0;mc<txtW;mc++){
+      const rows=[];
+      for(let lr=0;lr<TXH;lr++){
+        if(data[(lr*txtW+mc)*4+3]>80) rows.push(lr);
+      }
+      txtCols[mc]=rows;
+    }
+  }
+  function stampText(cy){
+    if(!txtCols) buildTxt();
+    const so=Math.floor(txtScroll);
+    const br=Math.round(cy/cell)-(TXH>>1);
+    for(let lc=0;lc<cols;lc++){
+      const mc=(((so+lc)%txtW)+txtW)%txtW;
+      const solid=txtCols[mc];
+      for(let i=0;i<solid.length;i++){
+        const R=br+solid[i]; if(R<0||R>=rows) continue;
+        const id=R*cols+lc, ww=0.78+0.14*Math.sin((lc*0.6+solid[i]*0.6)-t*0.006);
+        if(ww>heat[id]) heat[id]=ww;
+      }
+    }
+  }
+
+  let introT=0;
+
+  function render(ts){
+    raf=0;
+    if(!want()) return;
+    if(!lastTs) lastTs=ts;
+    const d=Math.min(48, ts-lastTs); lastTs=ts; t+=d; introT+=d/1000;
+    const tt=t*0.001, ns=performance.now()/1000;
+    refreshLayout();
+    const cutY=L.cutY;
+    const heroBottomScreen=L.heroBottom;
+
+    for(let i=0;i<heat.length;i++){ const v=heat[i]*0.878; heat[i]=v<.003?0:v; }
+
+    if(hov&&mx>0&&!TOUCH&&my>=cutY){
+      const hd=nearHeadline(mx,my), idle=ns-lastMove, still=isPageStill(ns);
+      if(hd){
+        if(idle<2.4){ pointArrow(mx,my,Math.atan2(hd.cy-my,hd.cx-mx),ns); pmx=mx; pmy=my; }
+        else if(still) wanderRoulette(mx,my);
+        else coinOn=false;
+      } else if(cursorZone==="coin"){
+        follow(mx,my,BRUSH*0.85); stampCoin(mx,my);
+        coinOn=false;
+      } else {
+        if(idle>1.6 && still) wanderRoulette(mx,my);
+        else {
+          coinOn=false;
+          follow(mx,my, my>heroBottomScreen?BRUSH*0.45:BRUSH);
+        }
+      }
+    } else if(my<cutY){
+      pmx=-1; pmy=-1; coinOn=false;
+    }
+
+    for(let wi=waves.length-1;wi>=0;wi--){
+      const wv=waves[wi], age=ns-wv.t0;
+      if(age>1.5){ waves.splice(wi,1); continue; }
+      stampWave(wv, age);
+    }
+
+    if(L.marq && L.marq.bottom>0 && L.marq.top<H){
+      txtScroll+=0.16;
+      stampText(L.marq.top+L.marq.height*0.55);
+    }
+
+    if(L.swap){
+      const sr=L.swap, pad=12;
+      const c0=Math.floor((sr.left-pad)/cell), c1=Math.ceil((sr.right+pad)/cell);
+      const r0=Math.floor((sr.top-pad)/cell), r1=Math.ceil((sr.bottom+pad)/cell);
+      for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+        if(c>=0&&r>=0&&c<cols&&r<rows) heat[r*cols+c]=0;
+      }
+    }
+    {
+      const r1=Math.ceil(cutY/cell);
+      for(let r=0;r<=r1&&r<rows;r++){
+        heat.fill(0, r*cols, r*cols+cols);
+      }
+    }
+
+    ctx.save();
+    if(shake>0.01){ shake*=0.9; ctx.translate((Math.random()-0.5)*shake*16,(Math.random()-0.5)*shake*16); } else shake=0;
+    ctx.fillStyle="#fff"; ctx.fillRect(-40,-40,W+80,H+80);
+
+    const sy=TOUCH?0:scrollY, off=sy-Math.floor(sy/cell)*cell, s=cell-1;
+    const gridTop=Math.max(0, cutY);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, gridTop, W, H-gridTop+40);
+    ctx.clip();
+    ctx.strokeStyle="#fafafa"; ctx.lineWidth=1; ctx.beginPath();
+    for(let gx=0;gx<=W;gx+=cell){ ctx.moveTo(gx+.5,gridTop); ctx.lineTo(gx+.5,H); }
+    for(let gy=gridTop-(((gridTop+off)%cell+cell)%cell); gy<=H; gy+=cell){
+      ctx.moveTo(0,gy+.5); ctx.lineTo(W,gy+.5);
+    }
+    ctx.stroke();
+
+    const intro=Math.min(1,introT/1.6);
+    const cutDoc=cutY+sy;
+    const heroBottom=heroBottomScreen+sy;
+    const fieldH=Math.max(1, heroBottom-cutDoc);
+    const heroEnd=cutDoc+fieldH*0.72;
+    const fadeSpan=Math.max(1, fieldH*0.28);
+    const hAmp=H*0.14;
+    const drStart=Math.floor((sy+gridTop)/cell)-1, drEnd=Math.floor((sy+H)/cell)+1;
+    const tPulse=tt*1.7;
+    for(let i=0;i<4;i++) buckets[i].length=0;
+
+    for(let dr=drStart; dr<=drEnd; dr++){
+      const vy=dr*cell-sy;
+      if(vy+s<=gridTop) continue;
+      const vr=Math.floor((vy+cell*0.5)/cell), inRow=(vr>=0&&vr<rows);
+      const dd=dr*cell;
+      const hRow=hsh(0,(dr/4)|0);
+      for(let c2=0;c2<cols;c2++){
+        const co=colCo[c2]+hshA[c2]*0.6*hRow;
+        const depthN=dd+co*hAmp;
+        const regThr=depthN<=cutDoc?1:(depthN<=heroEnd?0:Math.min(1,(depthN-heroEnd)/fadeSpan));
+
+        let v=inRow?heat[vr*cols+c2]*0.9:0;
+        if(regThr<1){
+          const nx=c2*cell*invW, ny=dr*cell*invH;
+          if(region(nx,ny,tt)>regThr && hsh(c2*1.7+11.3, dr*1.3+5.1)<intro){
+            v+=base(nx,ny,tt)+(hsh(c2,dr)-0.5)*0.12+Math.sin((c2*0.6+dr*0.8)+tPulse)*0.045;
+          }
+        }
+        if(v<0.30) continue;
+        let bi=0;
+        if(v>=BANDS[1][0]) bi=1;
+        if(v>=BANDS[2][0]) bi=2;
+        if(v>=BANDS[3][0]) bi=3;
+        if(v>=0.86&&v<1.02) bi=2;
+        buckets[bi].push(c2*cell, vy);
+      }
+    }
+    for(let bi=0;bi<4;bi++){
+      const b=buckets[bi];
+      if(!b.length) continue;
+      ctx.fillStyle=DRAW_COLS[bi];
+      for(let i=0;i<b.length;i+=2) ctx.fillRect(b[i], b[i+1], s, s);
+    }
+    ctx.restore();
+
+    if(coinOn){
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, gridTop, W, H-gridTop+40);
+      ctx.clip();
+      drawIdleRoulette(coinx, coiny, rang);
+      ctx.restore();
+    }
+    ctx.restore();
+    if(want()) raf=requestAnimationFrame(render);
+  }
+  kick();
+})();
+
+/* ===== roulette pixel wheel ===== */
+(function(){
+  const cv=document.getElementById("roulette-cv");
+  const ctx=cv&&cv.getContext("2d"); if(!ctx) return;
+  const DPR=Math.min(devicePixelRatio||1,2), CELL=8;
+  const COLS=["#0B3D3A","#00D4AA","#FFC107","#FF4D2E","#00D4AA","#FFC107"];
+  let W=0,H=0,inView=true, ang=0, spin=0.01, pmx=0,pmy=0,pstr=0,ptgt=0, raf=0;
+
+  function want(){ return inView && !document.hidden; }
+  function kick(){ if(raf||!want()) return; raf=requestAnimationFrame(loop); }
+  function stop(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
+  function sync(){ if(want()) kick(); else stop(); }
+
+  function size(){
+    const r=cv.getBoundingClientRect(); if(r.width<2) return;
+    W=r.width; H=r.height;
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  size();
+  if(window.ResizeObserver) new ResizeObserver(size).observe(cv);
+  if("IntersectionObserver" in window)
+    new IntersectionObserver(es=>{
+      inView=es.some(e=>e.isIntersecting);
+      sync();
+    }).observe(cv);
+  document.addEventListener("visibilitychange", sync);
+
+  cv.addEventListener("pointermove", e=>{
+    const r=cv.getBoundingClientRect();
+    pmx=e.clientX-r.left; pmy=e.clientY-r.top; ptgt=1;
+    spin=Math.min(0.045, spin+0.002);
+  },{passive:true});
+  cv.addEventListener("pointerleave",()=>{ ptgt=0; });
+
+  function frame(){
+    if(!W) return;
+    ctx.clearRect(0,0,W,H);
+    pstr+=(ptgt-pstr)*0.08;
+    spin+=(0.01-spin)*0.02;
+    ang+=spin;
+
+    const cx=W*0.5, cy=H*0.55;
+    const R=Math.min(W*0.38, H*0.7);
+    const segs=24;
+
+    for(let i=0;i<segs*2;i++){
+      const a=ang*0.5+i/(segs*2)*Math.PI*2;
+      const x=cx+Math.cos(a)*R*1.08;
+      const y=cy+Math.sin(a)*R*0.7;
+      ctx.globalAlpha=0.25+0.25*Math.sin(ang*4+i);
+      ctx.fillStyle=COLS[i%COLS.length];
+      ctx.fillRect(Math.round(x/CELL)*CELL, Math.round(y/CELL)*CELL, CELL-1, CELL-1);
+    }
+
+    for(let i=0;i<segs;i++){
+      const a0=ang+i/segs*Math.PI*2;
+      const a1=ang+(i+0.78)/segs*Math.PI*2;
+      const col=COLS[i%COLS.length];
+      for(let u=0;u<1;u+=0.035){
+        for(let rad=0.42; rad<=1; rad+=0.065){
+          const a=a0+(a1-a0)*u;
+          let x=cx+Math.cos(a)*R*rad;
+          let y=cy+Math.sin(a)*R*rad*0.68;
+          if(pstr>0.02){
+            const dx=x-pmx, dy=y-pmy, d=Math.hypot(dx,dy)+0.001;
+            const RAD=Math.min(W,H)*0.26;
+            if(d<RAD){
+              const f=(1-d/RAD); const ff=f*f*pstr;
+              x+=dx/d*ff*RAD*0.85; y+=dy/d*ff*RAD*0.85;
+            }
+          }
+          ctx.globalAlpha=0.3+rad*0.5;
+          ctx.fillStyle=col;
+          ctx.fillRect(Math.round(x/CELL)*CELL, Math.round(y/CELL)*CELL, CELL-1, CELL-1);
+        }
+      }
+    }
+
+    const ma=-Math.PI/2;
+    const bx=cx+Math.cos(ma)*R*1.02;
+    const by=cy+Math.sin(ma)*R*0.68;
+    ctx.globalAlpha=1;
+    ctx.fillStyle="#0A0A0A";
+    ctx.fillRect(Math.round(bx/CELL)*CELL-CELL, Math.round(by/CELL)*CELL-CELL, CELL*2-1, CELL*2-1);
+    ctx.fillStyle="#FFC107";
+    ctx.fillRect(Math.round(bx/CELL)*CELL, Math.round(by/CELL)*CELL, CELL-1, CELL-1);
+
+    for(let r=0;r<3;r++){
+      for(let a=0;a<8;a++){
+        const ang2=a/8*Math.PI*2+ang*0.3;
+        const x=cx+Math.cos(ang2)*CELL*(r+0.5);
+        const y=cy+Math.sin(ang2)*CELL*(r+0.5)*0.7;
+        ctx.globalAlpha=0.5;
+        ctx.fillStyle=r===0?"#0A0A0A":COLS[a%COLS.length];
+        ctx.fillRect(Math.round(x/CELL)*CELL, Math.round(y/CELL)*CELL, CELL-1, CELL-1);
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+  function loop(){
+    raf=0;
+    if(!want()) return;
+    frame();
+    if(want()) raf=requestAnimationFrame(loop);
+  }
+  kick();
+})();
+</script>
+</body>
+</html>
